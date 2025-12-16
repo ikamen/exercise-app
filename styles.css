@@ -12,17 +12,32 @@
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
+
+/* ---- Background fix: make ONE background source for the entire page ---- */
+html, body{
+  height:100%;
   margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  padding:0;
   background: radial-gradient(1200px 800px at 20% 0%, rgba(75,93,255,.18), transparent 60%),
               radial-gradient(900px 700px at 90% 20%, rgba(69,209,255,.12), transparent 55%),
               var(--bg);
-  color:var(--text);
+  background-attachment: fixed;
 }
 
-.wrap{ max-width: 820px; margin: 0 auto; padding: 16px 14px 40px; }
+body{
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color:var(--text);
+  overscroll-behavior: none; /* helps prevent iOS bounce revealing a different layer */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure wrapper doesn't introduce its own background layer */
+.wrap{
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 16px 14px 40px;
+  background: transparent;
+}
 
 header{
   display:flex;
@@ -169,12 +184,14 @@ input[type="number"]:focus{ border-color: rgba(75,93,255,.55); }
 }
 .ghost{ background: rgba(255,255,255,.05); }
 
+/* ---- Background fix: remove runner background layer that caused the band ---- */
 .runner{
   margin-top: 14px;
   padding: 14px;
-  background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.08));
+  background: transparent; /* was a separate gradient layer */
   border:1px solid var(--line);
   border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 18px 38px rgba(0,0,0,.30);
 }
 
 .runner-top{
