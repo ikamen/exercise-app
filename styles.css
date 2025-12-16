@@ -248,3 +248,41 @@ input[type="number"]:focus{ border-color: rgba(75,93,255,.55); }
 }
 .done{ color: rgba(255,255,255,.92); background: rgba(53,208,127,.12); border-color: rgba(53,208,127,.35); }
 .warn{ background: rgba(255,207,90,.10); border-color: rgba(255,207,90,.28); color: rgba(255,255,255,.88); }
+
+/* ===== Mobile: wrap description text around image ===== */
+.exercise-info{
+  display: block;              /* override grid on small screens */
+}
+
+.exercise-img{
+  float: left;
+  width: 170px;
+  height: 92px;
+  margin: 0 12px 10px 0;       /* space between image and text */
+}
+
+.desc{
+  margin: 0;
+}
+
+/* clear the float after the text */
+.exercise-info::after{
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* ===== Larger screens: restore grid layout ===== */
+@media (min-width: 520px){
+  .exercise-info{
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .exercise-img{
+    float: none;
+    margin: 0;
+  }
+}
