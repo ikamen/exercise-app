@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Exercise Helper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ================= CONFIG (EDIT THIS ONLY) ================= -->
+<script id="exerciseConfig" type="application/json">
+{
+  "app": {
+    "prepareSeconds": 5
+  },
+  "exercises": [
+    {
+      "id": "knee-extension",
+      "name": "Knee Extension",
+      "description": "Lie on your back with your affected leg resting over a wedge/pillow. Pull your foot up towards you and straighten out your affected leg, over the wedge/pillow, by tightening the muscles on top of your thigh. Hold for a few seconds before slowly bending your knee to lower your foot back down.",
+      "image": "images/knee-extension.jpg",
+      "sets": 3,
+      "reps": 10,
+      "repDurationSeconds": 5,
+      "restSeconds": 5,
+	  "sideSwitchSeconds": 3,
+      "performBothSides": true
+    },
+    {
+      "id": "knee-flexion",
+      "name": "Knee Flexion",
+      "description": "In lying, bend your knee by sliding your heel towards your bottom. Aim to bend your knee as far as comfort allows, unless otherwise stated.",
+      "image": "images/knee-flexion.jpg",
+      "sets": 3,
+      "reps": 10,
+      "repDurationSeconds": 7,
+      "restSeconds": 5,
+	  "sideSwitchSeconds": 5,
+      "performBothSides": true
+    }
+  ]
+}
+</script>
+<!-- ============================================================ -->
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Exercise Helper</h1>
+      <p class="hint">Pick an exercise → adjust options → Start.</p>
+    </div>
+    <button class="pill" id="audioPill" type="button">
+      Sound: <strong id="soundState">Off</strong>
+    </button>
+  </header>
+
+  <section class="btn-row" id="exerciseButtons"></section>
+  <main id="stage"></main>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
