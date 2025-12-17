@@ -21,6 +21,37 @@ function ensureAudio() {
   if (st) st.textContent = "On";
 }
 
+/**********************
+ * Web Audio MP3 (iOS-safe)
+ **********************/
+const audioBuffers = new Map();
+
+async function loadAudioBuffer(file) {
+  ensureAudio();
+
+  if (audioBuffers.has(file)) {
+    return audioBuffers.get(file);
+  }
+
+  const response = await fetch(`audio/${file}`);
+  const arrayBuffer = await response.arrayBuffer();
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+  audioBuffers.set(file, audioBuffer);
+  return audioBuffer;
+}
+
+async function playVoice(file) {
+  if (!soundEnabled) return;
+
+  const buffer = await loadAudioBuffer(file);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(audioCtx.destination);
+  src.start();
+}
+
+
 function tickSound() {
   if (!soundEnabled) return;
   ensureAudio();
@@ -34,21 +65,6 @@ function tickSound() {
   o.stop(audioCtx.currentTime + 0.05);
 }
 
-const voiceCache = {};
-
-function playVoice(file) {
-  if (!soundEnabled) return;
-  ensureAudio();
-
-  if (!voiceCache[file]) {
-    const audio = new Audio(`audio/${file}`);
-    audio.preload = "auto";
-    voiceCache[file] = audio;
-  }
-
-  const a = voiceCache[file].cloneNode();
-  a.play().catch(() => {});
-}
 
 
 function shouldTickThisSecond(totalSeconds, currentSecond) {
@@ -220,6 +236,10 @@ function buildExerciseCard(ex, appCfg) {
 
   startBtn.addEventListener("click", async () => {
     ensureAudio(); // user gesture
+
+	// Preload hold sounds during user gesture (required on iOS)
+	loadAudioBuffer("hold.mp3");
+	loadAudioBuffer("stop_hold.mp3");
 
     // stop any previous run
     runToken.abort = true;
