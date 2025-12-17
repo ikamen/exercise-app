@@ -34,6 +34,23 @@ function tickSound() {
   o.stop(audioCtx.currentTime + 0.05);
 }
 
+const voiceCache = {};
+
+function playVoice(file) {
+  if (!soundEnabled) return;
+  ensureAudio();
+
+  if (!voiceCache[file]) {
+    const audio = new Audio(`audio/${file}`);
+    audio.preload = "auto";
+    voiceCache[file] = audio;
+  }
+
+  const a = voiceCache[file].cloneNode();
+  a.play().catch(() => {});
+}
+
+
 function shouldTickThisSecond(totalSeconds, currentSecond) {
   // currentSecond counts DOWN (e.g. 10 → 1)
   if (totalSeconds <= 5) return true;
@@ -173,6 +190,9 @@ function buildExerciseCard(ex, appCfg) {
         <label>Rep Duration (sec)
           <input id="repDur" type="number" min="1" step="1" inputmode="numeric" value="${ex.repDurationSeconds ?? 3}">
         </label>
+		<label>Hold (sec)
+			<input id="holdSeconds" type="number" min="0" step="1" value="${ex.holdSeconds ?? 0}" >
+		</label>
         <label>Rest (sec)
           <input id="rest" type="number" min="0" step="1" inputmode="numeric" value="${ex.restSeconds ?? 30}">
         </label>
@@ -215,9 +235,9 @@ function buildExerciseCard(ex, appCfg) {
 	  rest: clampInt(card.querySelector("#rest").value, 0, ex.restSeconds ?? 30),
 	  bothSides: card.querySelector("#bothSides").checked,
 	  prepare: clampInt(appCfg.prepareSeconds ?? 5, 0, 5),
-	  sideSwitchPause: clampInt(ex.sideSwitchSeconds ?? 5, 0, 5)
+	  sideSwitchPause: clampInt(ex.sideSwitchSeconds ?? 5, 0, 5),
+	  holdSeconds: clampInt(stage.querySelector("#holdSeconds").value,0,ex.holdSeconds ?? 0)
 	};
-
 
     await runExercise({
       mount: runMount,
@@ -256,21 +276,22 @@ async function runExercise({ mount, label, opts, token }) {
   const runOneSetForSide = async (sideLabel, setIndex, advanceSetProgressAtEnd) => {
     if (token.abort) return;
 
-    await repsPhase(
-      runner,
-      label,
-      sideLabel,
-      setIndex,
-      opts.sets,
-      opts.reps,
-      opts.repDur,
-      token,
-      {
-        // sets bar should represent completed sets (not sides)
-        completedSetsBefore: setIndex - 1,
-        advanceSetProgressAtEnd
-      }
-    );
+	await repsPhase(
+	  runner,
+	  label,
+	  sideLabel,
+	  setIndex,
+	  opts.sets,
+	  opts.reps,
+	  opts.repDur,
+	  token,
+	  {
+		completedSetsBefore: setIndex - 1,
+		advanceSetProgressAtEnd
+	  },
+	  opts.holdSeconds
+	);
+
   };
 
   // Prepare happens once at the very start (before set 1 Right / or before first side)
@@ -433,7 +454,8 @@ async function repsPhase(
   repsTotal,
   repDurSec,
   token,
-  progress = { completedSetsBefore: setIndex - 1, advanceSetProgressAtEnd: true }
+  progress,
+  holdSeconds = 0
 ) {
   runner.innerHTML = `
     <div class="runner-top">
@@ -446,13 +468,16 @@ async function repsPhase(
 
     <div class="big" id="repNum">${repsTotal}</div>
     <p class="sub">Reps remaining</p>
+	  <p class="sub" id="holdText" style="display:none;font-weight:800;color:var(--warn);">
+		HOLD
+	  </p>	
 
     <div class="barblock">
-      <div class="barline">
-        <span>Rep duration</span>
-        <span><span id="repSec">0.0</span> / ${repDurSec}s</span>
-      </div>
-      <div class="progress"><div class="fill" id="repFill"></div></div>
+		<div class="barline">
+		  <span>Repetition duration</span>
+		  <span><span id="repSec">0.0</span> / <span id="repTotal"></span>s</span>
+		</div>
+		<div class="progress"><div class="fill" id="repFill"></div></div>
 
       <div class="barline">
         <span>Total sets</span>
@@ -470,6 +495,10 @@ async function repsPhase(
   const repNum = runner.querySelector("#repNum");
   const repFill = runner.querySelector("#repFill");
   const repSec = runner.querySelector("#repSec");
+  const repTotalEl = runner.querySelector("#repTotal");
+  const holdText = runner.querySelector("#holdText");
+  const totalRepSeconds = repDurSec + holdSeconds;
+  repTotalEl.textContent = totalRepSeconds;
   const setFill = runner.querySelector("#setFill");
   const statusLine = runner.querySelector("#statusLine");
 
@@ -488,27 +517,47 @@ async function repsPhase(
     const repNumber = repsTotal - repRemaining + 1;
     statusLine.textContent = `Rep ${repNumber} of ${repsTotal}`;
 
-    const totalMs = repDurSec * 1000;
-    const stepMs = 80;
-    let elapsed = 0;
+	const totalMs = (repDurSec + holdSeconds) * 1000;
+	const moveHalfMs = (repDurSec * 1000) / 2;
+
+	let elapsedTotal = 0;
+
+	const advance = async (ms, showHold = false) => {
+	  let elapsed = 0;
+	  holdText.style.display = showHold ? "block" : "none";
+
+	  while (!token.abort && elapsed < ms) {
+		await pauseGate(token);
+		if (token.abort) return;
+
+		await sleepPausable(80, token, 60);
+		elapsed += 80;
+		elapsedTotal += 80;
+
+		const pct = Math.min(100, (elapsedTotal / totalMs) * 100);
+		repFill.style.width = `${pct}%`;
+		repSec.textContent = Math.min(totalRepSeconds, elapsedTotal / 1000).toFixed(1);
+	  }
+	};
+
+
+	if (holdSeconds > 0) {
+	  await advance(moveHalfMs, false);
+
+	  playVoice("hold.mp3");
+	  await advance(holdSeconds * 1000, true);
+
+	  playVoice("stop_hold.mp3");
+	  await advance(moveHalfMs, false);
+	} else {
+	  await advance(repDurSec * 1000, false);
+	}
+
+
 
     repFill.style.width = "0%";
     repSec.textContent = "0.0";
-
-    while (!token.abort && elapsed < totalMs) {
-      await pauseGate(token);
-      if (token.abort) return;
-
-      await sleepPausable(stepMs, token, 60);
-      elapsed += stepMs;
-
-      const pct = Math.min(100, (elapsed / totalMs) * 100);
-      repFill.style.width = `${pct}%`;
-      repSec.textContent = Math.min(repDurSec, elapsed / 1000).toFixed(1);
-    }
-
-    repFill.style.width = "0%";
-    repSec.textContent = "0.0";
+	holdText.style.display = "none";
     await sleepPausable(120, token, 60);
   }
 
