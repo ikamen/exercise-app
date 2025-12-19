@@ -88,6 +88,21 @@ function repStartSound() {
   o.stop(audioCtx.currentTime + 0.14);
 }
 
+function scrollToRunner(runMountEl) {
+  if (!runMountEl) return;
+
+  // Only do this on small screens (mobile-ish)
+  if (!window.matchMedia("(max-width: 640px)").matches) return;
+
+  // Wait until layout updates, then scroll
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      runMountEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+
 /**********************
  * Helpers (pause/skip safe timers)
  **********************/
@@ -275,6 +290,9 @@ function buildExerciseCard(ex, appCfg) {
 
     startBtn.disabled = true;
     stopBtn.disabled = false;
+	
+	// ✅ Auto-scroll on mobile to the timer/progress section
+	scrollToRunner(runMount);
 
 	const opts = {
 	  sets: clampInt(card.querySelector("#sets").value, 1, ex.sets ?? 3),
