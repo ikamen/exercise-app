@@ -182,53 +182,81 @@ function buildExerciseCard(ex, appCfg) {
 
   const card = document.createElement("section");
   card.className = "card";
-  card.innerHTML = `
-    <div class="card-head">
-      <h2>${escapeHtml(ex.name)}</h2>
-      <div class="pill">Configure</div>
-    </div>
+  
+	card.innerHTML = `
+	  <div class="card-head">
+		<h2>${escapeHtml(ex.name)}</h2>
 
-    <div class="card-body">
-      <div class="exercise-info">
-        <div class="exercise-img" aria-label="exercise image">
-          ${ex.image ? `<img src="${escapeHtml(ex.image)}" alt="${escapeHtml(ex.name)}">` : `<span>Image</span>`}
-        </div>
-        <p class="desc">${escapeHtml(ex.description)}</p>
-      </div>
+		<button class="configToggle" type="button" aria-expanded="false">
+		  Configuration <span class="arrow" aria-hidden="true">▼</span>
+		</button>
+	  </div>
 
-      <div class="form" role="group" aria-label="Exercise options">
-        <label>Sets
-          <input id="sets" type="number" min="1" step="1" inputmode="numeric" value="${ex.sets ?? 3}">
-        </label>
-        <label>Reps
-          <input id="reps" type="number" min="1" step="1" inputmode="numeric" value="${ex.reps ?? 10}">
-        </label>
-        <label>Rep Duration (sec)
-          <input id="repDur" type="number" min="1" step="1" inputmode="numeric" value="${ex.repDurationSeconds ?? 3}">
-        </label>
-		<label>Hold (sec)
-			<input id="holdSeconds" type="number" min="0" step="1" value="${ex.holdSeconds ?? 0}" >
-		</label>
-        <label>Rest (sec)
-          <input id="rest" type="number" min="0" step="1" inputmode="numeric" value="${ex.restSeconds ?? 30}">
-        </label>
+	  <div class="card-body">
+		<div class="exercise-info">
+		  <div class="exercise-img" aria-label="exercise image">
+			${ex.image ? `<img src="${escapeHtml(ex.image)}" alt="${escapeHtml(ex.name)}">` : `<span>Image</span>`}
+		  </div>
+		  <p class="desc">${escapeHtml(ex.description)}</p>
+		</div>
 
-        <div class="checkline">
-          <input id="bothSides" type="checkbox" ${ex.performBothSides ? "checked" : ""}>
-          <span>Perform on both sides</span>
-        </div>
-      </div>
+		<!-- Collapsible configuration (hidden by default) -->
+		<div class="configPanel" hidden>
+		  <div class="form" role="group" aria-label="Exercise options">
+			<label>Sets
+			  <input id="sets" type="number" min="1" step="1" inputmode="numeric" value="${ex.sets ?? 3}">
+			</label>
+			<label>Reps
+			  <input id="reps" type="number" min="1" step="1" inputmode="numeric" value="${ex.reps ?? 10}">
+			</label>
+			<label>Rep Duration (sec)
+			  <input id="repDur" type="number" min="1" step="1" inputmode="numeric" value="${ex.repDurationSeconds ?? 3}">
+			</label>
+			<label>Hold (sec)
+			  <input id="holdSeconds" type="number" min="0" step="1" value="${ex.holdSeconds ?? 0}">
+			</label>
+			<label>Rest (sec)
+			  <input id="rest" type="number" min="0" step="1" inputmode="numeric" value="${ex.restSeconds ?? 30}">
+			</label>
 
-      <div class="actions">
-        <button class="primary" id="startBtn" type="button">Start</button>
-        <button class="ghost" id="stopBtn" type="button" disabled>Stop</button>
-      </div>
+			<div class="checkline">
+			  <input id="bothSides" type="checkbox" ${ex.performBothSides ? "checked" : ""}>
+			  <span>Perform on both sides</span>
+			</div>
+		  </div>
+		</div>
 
-      <div id="runMount"></div>
-    </div>
-  `;
+		<!-- Start/Stop stay visible even when config is collapsed -->
+		<div class="actions">
+		  <button class="primary" id="startBtn" type="button">Start</button>
+		  <button class="ghost" id="stopBtn" type="button" disabled>Stop</button>
+		</div>
+
+		<div id="runMount"></div>
+	  </div>
+	`;
+
 
   stage.appendChild(card);
+
+  // Collapsible configuration toggle
+	const toggleBtn = card.querySelector(".configToggle");
+	const configPanel = card.querySelector(".configPanel");
+
+	const setExpanded = (expanded) => {
+	  toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+	  configPanel.hidden = !expanded;
+	  toggleBtn.querySelector(".arrow").textContent = expanded ? "▲" : "▼";
+	};
+
+	// Hidden by default on load
+	setExpanded(false);
+
+	toggleBtn.addEventListener("click", () => {
+	  const expanded = toggleBtn.getAttribute("aria-expanded") === "true";
+	  setExpanded(!expanded);
+	});
+
 
   const startBtn = card.querySelector("#startBtn");
   const stopBtn = card.querySelector("#stopBtn");
